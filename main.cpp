@@ -4,10 +4,6 @@
 // https://docs.opencv.org/master/d9/d97/tutorial_table_of_content_features2d.html
 // https://github.com/opencv/opencv/blob/master/samples/cpp/tutorial_code/features2D/AKAZE_match.cpp
 // https://docs.opencv.org/4.5.2/dc/dc3/tutorial_py_matcher.html
-
-// $ brew list --versions | grep -i opencv
-// opencv 4.5.2 on Mac
-
 // https://pystyle.info/opencv-feature-matching/
 // http://poly.hatenablog.com/entry/2014/01/06/063012
 // http://independence-sys.net/main/?p=2632
@@ -17,12 +13,11 @@
 #include <opencv2/highgui.hpp>
 #include <iostream>
 #include <iostream>
+// measure time
 // https://qiita.com/yukiB/items/01f8e276d906bf443356
 // https://speech-processing-beginner.com/2020/08/30/cpp-time_measure/
+// #include <time.h>
 #include <chrono>
-#include <time.h>
-
-
 
 using namespace std;
 using namespace cv;
@@ -41,8 +36,8 @@ int main(int argc, char* argv[])
                              "{@img1 | input/graf1.png | input image 1}"
                              "{@img2 | input/graf3.png | input image 2}"
                              "{@homography | input/H1to3p.xml | homography matrix}"
-                             "{d detecter | 0 | ./a.out -d=0 is ORB, -d=1 is AKAZE, -d=2 is BRISK}"
-                             "{r printtime | | print all, or print just run time}");
+                             "{d detecter | orb | ./a.out -d=orb}"
+                             "{p printtime | | print all, or print just run time}");
     
     Mat img1 = imread( samples::findFile( parser.get<String>("@img1") ), IMREAD_GRAYSCALE);
     Mat img2 = imread( samples::findFile( parser.get<String>("@img2") ), IMREAD_GRAYSCALE);
@@ -52,42 +47,33 @@ int main(int argc, char* argv[])
     fs.getFirstTopLevelNode() >> homography;
     //! [load]
 
-    //! [AKAZE]
     vector<KeyPoint> kpts1, kpts2;
     Mat desc1, desc2;
 
     
-    string de_name = " ";
-    if( parser.get<int>("detecter") == 0 ){
+    if( parser.get<string>("detecter") == "orb" ){
         Ptr<ORB> detecter = ORB::create();
         // // find the keypoints and descriptors with ORB
         detecter->detectAndCompute(img1, noArray(), kpts1, desc1);
         detecter->detectAndCompute(img2, noArray(), kpts2, desc2);
-        de_name = "ORB";
     }
-    else if( parser.get<int>("detecter") == 1 ){
+    else if( parser.get<string>("detecter") == "akaze" ){
         Ptr<AKAZE> detecter = AKAZE::create();
-        // // find the keypoints and descriptors with ORB
+        // // find the keypoints and descriptors with AKAZE
         detecter->detectAndCompute(img1, noArray(), kpts1, desc1);
         detecter->detectAndCompute(img2, noArray(), kpts2, desc2);
-        de_name = "AKAZE";
     }
-    else if( parser.get<int>("detecter") == 2 ){
+    else if( parser.get<string>("detecter") == "brisk" ){
         Ptr<BRISK> detecter = BRISK::create();
-        // // find the keypoints and descriptors with ORB
+        // // find the keypoints and descriptors with BRISK
         detecter->detectAndCompute(img1, noArray(), kpts1, desc1);
         detecter->detectAndCompute(img2, noArray(), kpts2, desc2);
-        de_name = "BRISK";
     }
     // // Initiate ORB detector
     // Ptr<ORB> detecter = ORB::create();
     // Ptr<AKAZE> detecter = AKAZE::create();
     // Ptr<BRISK> detecter = BRISK::create();
     // https://mz-kb.com/blog/2018/07/14/opencv-akaze-orb-brisk/
-
-
-
-
 
 
     //! [2-nn matching]
@@ -118,8 +104,8 @@ int main(int argc, char* argv[])
         col.at<double>(0) = matched1[i].pt.x;
         col.at<double>(1) = matched1[i].pt.y;
 
-        col = homography * col;
-        col /= col.at<double>(2);
+        col = homography * col;// X'=HX, X(3*1, matched), X'(col)
+        col /= col.at<double>(2);// normalize
         double dist = sqrt( pow(col.at<double>(0) - matched2[i].pt.x, 2) +
                             pow(col.at<double>(1) - matched2[i].pt.y, 2));
 
@@ -140,17 +126,18 @@ int main(int argc, char* argv[])
     end = std::chrono::system_clock::now();  // 計測終了時間
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
     if(parser.has("printtime")){
-        cout << elapsed << endl;
+        cout << 50 * elapsed / inliers1.size() << endl;
     }
     else{
-        cout << "Matching Results: " << de_name << endl;
+        cout << "Matching Results: " << parser.get<string>("detecter") << endl;
         cout << "*******************************" << endl;
         cout << "# Keypoints 1:                        \t" << kpts1.size() << endl;
         cout << "# Keypoints 2:                        \t" << kpts2.size() << endl;
         cout << "# Matches:                            \t" << matched1.size() << endl;
         cout << "# Inliers:                            \t" << inliers1.size() << endl;
         cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
-        cout << "# chrono time:                      \t" << elapsed << endl;    
+        cout << "# chrono time:                      \t" << elapsed << endl;
+        cout << "# chrono time per 50 Inliers:                      \t" << 50 * elapsed / inliers1.size() << endl;    
         cout << endl;
     }
     
@@ -159,7 +146,7 @@ int main(int argc, char* argv[])
     // const double time = static_cast<double> (endd-startt) / CLOCKS_PER_SEC * 1.0; //sec
     // cout << "# clock time:                      \t" << time << endl;
 
-    // imwrite("akaze_result.png", res);
+    // imwrite("result.png", res);
     // imshow("result", res);
     // waitKey();
     // ! [draw final matches]
