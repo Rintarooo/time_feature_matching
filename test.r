@@ -1,5 +1,5 @@
-getwd()
-setwd("/Users/satourintarou/Documents/AIST/Course/ExperimentDesignInCS/homework/hw2/data")
+# getwd()
+# setwd("/Users/satourintarou/Documents/AIST/Course/ExperimentDesignInCS/homework/hw2/data")
 
 orb <- read.csv("orb.csv", header = F)
 orb
