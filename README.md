@@ -1,4 +1,5 @@
-# Compare run times of ORB, BRISK and AKAZE
+# Compare run times of feature matching
+## ORB, BRISK and AKAZE
 This repo is the final report for the lecture.
 
 More details can be found in `output.pdf`.
